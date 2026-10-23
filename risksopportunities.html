@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Risks / Opportunities</title>
+<style>
+  :root {
+    --brand: #2b6cb0;
+    --header-bg: #cfe0df;   /* light tint of the brand colour, like the light-blue headers in the template */
+    --grid: #1f1f1f;        /* dark grid lines to match the template */
+    --text: #1f1f1f;
+    --muted: #5c6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .ro-wrap { padding: 4px 2px 8px; overflow-x: auto; }
+
+  .ro-title {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .ro-table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .ro-table col.c-cat  { width: 27.5%; }
+  .ro-table col.c-risk { width: 35%; }
+  .ro-table col.c-opp  { width: 37.5%; }
+
+  .ro-table th,
+  .ro-table td {
+    border: 1px solid var(--grid);
+  }
+
+  .ro-table th {
+    background: var(--header-bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 8px 10px;
+  }
+
+  .ro-table tbody .ro-guidance td {
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 4px 8px;
+  }
+
+  .ro-table tbody td {
+    vertical-align: top;
+    padding: 0;
+  }
+
+  .ro-cat {
+    padding: 8px !important;
+    line-height: 1.35;
+    vertical-align: middle !important;
+  }
+
+  .ro-table textarea {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    border: 0;
+    margin: 0;
+    padding: 8px;
+    resize: none;
+    overflow: hidden;
+    font: inherit;
+    line-height: 1.35;
+    color: var(--text);
+    background: transparent;
+    outline: none;
+  }
+  .ro-table textarea::placeholder { color: transparent; }
+  .ro-table textarea:focus::placeholder { color: #9aa8a8; }
+  .ro-table textarea:focus {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+  .ro-table textarea:disabled {
+    color: var(--text);
+    background: transparent;
+    cursor: default;
+  }
+  .ro-table textarea.ro-missing {
+    background: repeating-linear-gradient(45deg, #fafafa, #fafafa 6px, #f2f2f2 6px, #f2f2f2 12px);
+  }
+  .ro-table textarea.ro-missing::placeholder { color: #9aa8a8; }
+
+  .ro-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 16px;
+  }
+  .ro-status.saved { color: var(--brand); }
+  .ro-status.warn { color: #a4262c; }
+</style>
+</head>
+<body>
+<div class="ro-wrap">
+  <h2 class="ro-title">Risks/Opportunities</h2>
+
+  <table class="ro-table" aria-label="Risks and opportunities">
+    <colgroup>
+      <col class="c-cat"><col class="c-risk"><col class="c-opp">
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col">Risk category</th>
+        <th scope="col">Potential risk</th>
+        <th scope="col">Potential opportunity</th>
+      </tr>
+    </thead>
+    <tbody id="ro-body">
+      <tr class="ro-guidance">
+        <td colspan="3">
+          Consider the community impacts (positive or negative) including level of service, increased costs,
+          quality of lifestyle, health, accessibility, safety, timing. What community expectations will need
+          to be managed? Will consultation be required? Who, when and to what extent?
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="ro-foot">
+    <span class="ro-status" id="ro-status"></span>
+    <span id="ro-mode"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     CONFIG — one row per category. Change the logical names to match
+     your Multiple lines of text columns. Each column must be on the
+     form (a hidden section is fine) so formContext can reach it.
+     ------------------------------------------------------------------ */
+  var ROWS = [
+    { label: "Employee welfare / public safety",       risk: "new_risk_employeewelfare",  opp: "new_opp_employeewelfare" },
+    { label: "Reputation / community expectation",     risk: "new_risk_reputation",       opp: "new_opp_reputation" },
+    { label: "Political",                              risk: "new_risk_political",        opp: "new_opp_political" },
+    { label: "Financial / business sustainability",    risk: "new_risk_financial",        opp: "new_opp_financial" },
+    { label: "Environment",                            risk: "new_risk_environment",      opp: "new_opp_environment" },
+    { label: "Compliance / legal",                     risk: "new_risk_compliance",       opp: "new_opp_compliance" },
+    { label: "Service delivery",                       risk: "new_risk_servicedelivery",  opp: "new_opp_servicedelivery" }
+  ];
+
+  var formContext = null;
+  var initialised = false;
+  var statusEl = document.getElementById("ro-status");
+  var modeEl = document.getElementById("ro-mode");
+  var statusTimer = null;
+
+  /* ---------- Build rows ---------- */
+  var body = document.getElementById("ro-body");
+  var inputs = []; // { el, column }
+
+  ROWS.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.className = "ro-row";
+
+    var tdCat = document.createElement("td");
+    tdCat.className = "ro-cat";
+    tdCat.textContent = r.label;
+    tr.appendChild(tdCat);
+
+    [["risk", "Potential risk"], ["opp", "Potential opportunity"]].forEach(function (pair) {
+      var td = document.createElement("td");
+      td.setAttribute("data-label", pair[1]);
+      var ta = document.createElement("textarea");
+      ta.rows = 1;
+      ta.placeholder = "Add " + pair[1].toLowerCase() + "…";
+      ta.setAttribute("aria-label", r.label + " – " + pair[1]);
+      td.appendChild(ta);
+      tr.appendChild(td);
+      inputs.push({ el: ta, column: r[pair[0]] });
+    });
+
+    body.appendChild(tr);
+  });
+
+  /* ---------- Helpers ---------- */
+  function autoGrow(ta) {
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text || "";
+    statusEl.className = "ro-status" + (cls ? " " + cls : "");
+    clearTimeout(statusTimer);
+    if (text && cls === "saved") {
+      statusTimer = setTimeout(function () { setStatus(""); }, 2500);
+    }
+  }
+
+  function isFormReadOnly(fc) {
+    try {
+      var t = fc.ui.getFormType(); // 3 = Read Only, 4 = Disabled
+      return t === 3 || t === 4;
+    } catch (e) { return false; }
+  }
+
+  /* ---------- Bind to the form ---------- */
+  var t0 = Date.now();
+  function bind(fc, via) {
+    if (initialised) return;
+    initialised = true;
+    formContext = fc;
+    console.info("[Risks/Opportunities] connected via " + via + " after " + (Date.now() - t0) + "ms");
+
+    var formReadOnly = isFormReadOnly(fc);
+    var missing = [];
+
+    inputs.forEach(function (item) {
+      var ta = item.el;
+      var attr = fc.getAttribute(item.column);
+
+      if (!attr) {
+        missing.push(item.column);
+        ta.disabled = true;
+        ta.classList.add("ro-missing");
+        ta.placeholder = "Column not on form: " + item.column;
+        return;
+      }
+
+      ta.value = attr.getValue() || "";
+      var maxLen = typeof attr.getMaxLength === "function" ? attr.getMaxLength() : null;
+      if (maxLen) ta.maxLength = maxLen;
+
+      var ctrl = fc.getControl(item.column);
+      var ctrlDisabled = ctrl && typeof ctrl.getDisabled === "function" ? ctrl.getDisabled() : false;
+      ta.disabled = formReadOnly || ctrlDisabled;
+
+      ta.addEventListener("input", function () {
+        autoGrow(ta);
+        var v = ta.value.trim() === "" ? null : ta.value;
+        if (attr.getValue() !== v) {
+          attr.setValue(v);
+          setStatus("Unsaved changes — save the record to keep them.");
+        }
+      });
+
+      // Keep in sync if something else (a flow refresh, business rule, another script) changes the column
+      attr.addOnChange(function () {
+        var v = attr.getValue() || "";
+        if (ta.value !== v) { ta.value = v; autoGrow(ta); }
+      });
+
+      autoGrow(ta);
+    });
+
+    // Refresh the "unsaved" note once the record saves
+    try {
+      fc.data.entity.addOnPostSave(function () { setStatus("Saved", "saved"); });
+    } catch (e) { /* addOnPostSave not available in older clients */ }
+
+    if (missing.length) {
+      setStatus(missing.length + " column(s) not found on the form — see console.", "warn");
+      console.warn("[Risks/Opportunities] Add these columns to the form (hidden section is fine):", missing);
+    }
+    modeEl.textContent = formReadOnly ? "Read only" : "";
+  }
+
+  /* ---------- Entry points ---------- */
+  // Preferred: called from the form OnLoad script via getContentWindow()
+  window.setClientApiContext = function (xrm, fc) { bind(fc, "OnLoad JS"); };
+
+  // Fallback: legacy parent.Xrm.Page if the OnLoad handler hasn't connected yet.
+  // Checks every 100ms and binds as soon as the form is ready, instead of a fixed wait.
+  function tryParent() {
+    try {
+      var p = window.parent;
+      if (p && p !== window && p.Xrm && p.Xrm.Page && p.Xrm.Page.data && p.Xrm.Page.data.entity) {
+        bind(p.Xrm.Page, "parent.Xrm.Page fallback");
+        return true;
+      }
+    } catch (e) { /* cross-origin or not hosted */ }
+    return false;
+  }
+
+  var attempts = 0;
+  (function poll() {
+    if (initialised || tryParent()) return;
+    if (++attempts < 50) { setTimeout(poll, 100); return; } // give up after ~5s
+
+    // Not hosted in Dynamics — preview mode
+    console.info("[Risks/Opportunities] not connected after 5s, preview mode");
+    modeEl.textContent = "Preview mode (not connected to a record)";
+    inputs.forEach(function (item) {
+      item.el.addEventListener("input", function () { autoGrow(item.el); });
+    });
+  })();
+
+  window.addEventListener("resize", function () { inputs.forEach(function (i) { autoGrow(i.el); }); });
+})();
+</script>
+</body>
+</html>

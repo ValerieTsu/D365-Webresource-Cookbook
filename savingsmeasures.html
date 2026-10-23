@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Savings Measures</title>
+<style>
+  :root {
+    --brand: #2b6cb0;
+    --header-bg: #cfe0df;   /* light tint of the brand colour */
+    --grid: #1f1f1f;
+    --text: #1f1f1f;
+    --muted: #4a5555;
+    --bad: #a4262c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .sm-wrap { padding: 4px 2px 8px; overflow-x: auto; }
+  .sm-intro { margin: 0 0 4px; font-size: 14px; }
+
+  .sm-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .sm-table col.c-meas { width: 25%; }
+  .sm-table col.c-bud  { width: 11%; }
+  .sm-table col.c-exp  { width: 11%; }
+  .sm-table col.c-desc { width: 53%; }
+
+  .sm-table th,
+  .sm-table td { border: 1px solid var(--grid); }
+
+  .sm-table th {
+    background: var(--header-bg);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    vertical-align: top;
+    padding: 6px 8px;
+    line-height: 1.25;
+  }
+  .sm-table th.l { text-align: left; }
+  .sm-table th.c { text-align: center; }
+  .sm-guide {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 400;
+    font-style: italic;
+    text-align: left;
+    line-height: 1.35;
+  }
+  .sm-guide p { margin: 0 0 6px; }
+  .sm-guide p:last-child { margin: 0; }
+
+  .sm-table tbody td {
+    vertical-align: top;
+    padding: 0;
+    position: relative;
+  }
+
+  .sm-table textarea {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    border: 0;
+    margin: 0;
+    padding: 6px 8px;
+    resize: none;
+    overflow: hidden;
+    font: inherit;
+    line-height: 1.35;
+    color: var(--text);
+    background: transparent;
+    outline: none;
+  }
+  .sm-table td.sm-num textarea { text-align: right; }
+  .sm-table td.sm-desc textarea { padding-right: 32px; }
+  .sm-table textarea::placeholder { color: transparent; }
+  .sm-table textarea:focus::placeholder { color: #9aa8a8; }
+  .sm-table textarea:focus {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+  .sm-table textarea:disabled { color: var(--text); background: transparent; cursor: default; }
+
+  .sm-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #6b7777;
+    font-size: 16px;
+    line-height: 24px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s ease, background-color .12s ease;
+  }
+  tr:hover .sm-remove,
+  tr:focus-within .sm-remove,
+  .sm-remove:focus-visible { opacity: 1; }
+  .sm-remove:hover { background: #f3e4e4; color: var(--bad); }
+  .sm-remove:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  @media (hover: none) { .sm-remove { opacity: 1; } }
+
+  .sm-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    min-height: 28px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sm-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--brand);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .sm-add:hover { background: #eef5f5; }
+  .sm-add:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .sm-add span { font-size: 18px; line-height: 1; }
+
+  .sm-locked .sm-remove,
+  .sm-locked .sm-add { display: none; }
+
+  .sm-status.saved { color: var(--brand); }
+  .sm-status.warn { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="sm-wrap" id="sm-wrap">
+  <p class="sm-intro">Consider the expected costs of the proposal, the expected/potential savings, alternative options and current costs</p>
+
+  <table class="sm-table" aria-label="Savings measures">
+    <colgroup>
+      <col class="c-meas"><col class="c-bud"><col class="c-exp"><col class="c-desc">
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col" class="l">Savings measure</th>
+        <th scope="col" class="c">Budget<br><span id="fy-cur">2025-26</span><br>$</th>
+        <th scope="col" class="c">Expected Budget<br><span id="fy-next">2026-27</span><br>$</th>
+        <th scope="col" class="c">Description of associated financial impacts
+          <span class="sm-guide">
+            <p>Savings: Approximation of saving to be made.</p>
+            <p>Timing: Is this a one off measure in a single or over multiple financial years? Is it a permanent measure? Can it be implemented in <span id="fy-next-2">2026-27</span>?</p>
+            <p>Interdependencies: Is it dependent on another activity occurring e.g. changes to legislation/policy/procedure, existing contract/s to be renegotiation or completed</p>
+            <p>Associated costs: e.g. capital expenditure, staffing, training requirements.</p>
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="sm-body"></tbody>
+  </table>
+
+  <div class="sm-actions">
+    <button type="button" class="sm-add" id="sm-add"><span aria-hidden="true">+</span> Add savings measure</button>
+    <span class="sm-status" id="sm-status"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIGURATION
+     COLUMN    — Multiple lines of text, holds all rows as JSON:
+                 [{"measure":"...","budget":"...","expected":"...","description":"..."}]
+                 Must be on the form (a hidden section is fine).
+     FY_LOOKUP — Financial Year lookup on the bid. Its name (e.g. "2026-27") becomes the
+                 "Expected Budget" year; "Budget" is the year before.
+                 Optional: if missing, years are worked out from today's date.
+     ============================================================ */
+  var COLUMN    = "new_savingsmeasures";
+  var FY_LOOKUP = "new_financialyear";
+
+  // The cells in each row, left to right
+  var FIELDS = [
+    { key: "measure",     label: "Savings measure",  cls: "",       placeholder: "e.g. Reduce printing costs" },
+    { key: "budget",      label: "Budget",           cls: "sm-num", placeholder: "e.g. 20M" },
+    { key: "expected",    label: "Expected budget",  cls: "sm-num", placeholder: "e.g. 20M" },
+    { key: "description", label: "Description of associated financial impacts", cls: "sm-desc",
+      placeholder: "Savings, timing, interdependencies, associated costs…" }
+  ];
+
+  var body = document.getElementById("sm-body");
+  var wrap = document.getElementById("sm-wrap");
+  var addBtn = document.getElementById("sm-add");
+  var statusEl = document.getElementById("sm-status");
+
+  var attr = null;
+  var lastWritten;
+  var locked = false;
+  var initialised = false;
+  var statusTimer = null;
+  var t0 = Date.now();
+
+  /* ---------- Helpers ---------- */
+  function rows() { return Array.prototype.slice.call(body.querySelectorAll("tr")); }
+
+  function growRow(tr) {
+    // keep every cell in a row the same height
+    var tas = tr.querySelectorAll("textarea");
+    tas.forEach(function (t) { t.style.height = "auto"; });
+    var h = 0;
+    tas.forEach(function (t) { h = Math.max(h, t.scrollHeight); });
+    tas.forEach(function (t) { t.style.height = h + "px"; });
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text || "";
+    statusEl.className = "sm-status" + (cls ? " " + cls : "");
+    clearTimeout(statusTimer);
+    if (text && cls === "saved") statusTimer = setTimeout(function () { setStatus(""); }, 2500);
+  }
+
+  /* ---------- Financial year headings ---------- */
+  function fyLabel(startYear) {
+    return startYear + "-" + String((startYear + 1) % 100).padStart(2, "0");
+  }
+  function setYears(nextStart) {
+    document.getElementById("fy-cur").textContent = fyLabel(nextStart - 1);
+    document.getElementById("fy-next").textContent = fyLabel(nextStart);
+    document.getElementById("fy-next-2").textContent = fyLabel(nextStart);
+  }
+  function defaultYears() {
+    // Australian FY starts 1 July. Bids are for the next financial year.
+    var d = new Date();
+    var curStart = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+    setYears(curStart + 1);
+  }
+  function yearsFromLookup(fc) {
+    try {
+      var a = fc.getAttribute(FY_LOOKUP);
+      var v = a && a.getValue();
+      var name = v && v[0] && v[0].name;
+      var m = name && name.match(/(20\d{2})/);
+      if (m) setYears(parseInt(m[1], 10));
+    } catch (e) {}
+  }
+
+  /* ---------- Rows ---------- */
+  function addRow(row, focus) {
+    var tr = document.createElement("tr");
+
+    FIELDS.forEach(function (f) {
+      var td = document.createElement("td");
+      if (f.cls) td.className = f.cls;
+      var ta = document.createElement("textarea");
+      ta.rows = 1;
+      ta.placeholder = f.placeholder;
+      ta.setAttribute("aria-label", f.label);
+      ta.value = row && row[f.key] != null ? String(row[f.key]) : "";
+      ta.disabled = locked;
+      ta.addEventListener("input", function () { growRow(tr); commit(); });
+      td.appendChild(ta);
+      tr.appendChild(td);
+    });
+
+    var rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "sm-remove";
+    rm.title = "Remove row";
+    rm.setAttribute("aria-label", "Remove row");
+    rm.textContent = "×";
+    rm.addEventListener("click", function () {
+      if (rows().length === 1) {
+        tr.querySelectorAll("textarea").forEach(function (t) { t.value = ""; });
+        growRow(tr);
+      } else {
+        var next = tr.nextElementSibling || tr.previousElementSibling;
+        tr.remove();
+        if (next) next.querySelector("textarea").focus();
+      }
+      commit();
+    });
+    tr.lastChild.appendChild(rm);
+
+    body.appendChild(tr);
+    growRow(tr);
+    if (focus) tr.querySelector("textarea").focus();
+  }
+
+  function render(value) {
+    var data = null;
+    try { data = value ? JSON.parse(value) : null; } catch (e) { data = null; }
+    body.innerHTML = "";
+    var list = Array.isArray(data) && data.length ? data : [null];
+    list.forEach(function (r) { addRow(r, false); });
+  }
+
+  addBtn.addEventListener("click", function () { addRow(null, true); });
+
+  /* ---------- Write back to the form column ---------- */
+  function collect() {
+    var out = [];
+    rows().forEach(function (tr) {
+      var tas = tr.querySelectorAll("textarea");
+      var r = {}, any = false;
+      FIELDS.forEach(function (f, i) {
+        r[f.key] = tas[i].value;
+        if (tas[i].value.trim()) any = true;
+      });
+      if (any) out.push(r);
+    });
+    return out;
+  }
+
+  function commit() {
+    if (!attr) return;
+    var data = collect();
+    var v = data.length ? JSON.stringify(data) : null;
+
+    var max = typeof attr.getMaxLength === "function" ? attr.getMaxLength() : null;
+    if (max && v && v.length > max) {
+      setStatus("Too much text for the column (" + v.length + " of " + max + " characters).", "warn");
+      return;
+    }
+    if (attr.getValue() !== v) {
+      lastWritten = v;
+      attr.setValue(v);
+      setStatus("Unsaved changes — save the record to keep them.");
+    }
+  }
+
+  function setLocked(on) {
+    locked = on;
+    wrap.classList.toggle("sm-locked", on);
+    body.querySelectorAll("textarea").forEach(function (t) { t.disabled = on; });
+  }
+
+  /* ---------- Bind to the form ---------- */
+  function bind(fc, via) {
+    if (initialised) return;
+    initialised = true;
+    console.info("[Savings Measures] connected via " + via + " after " + (Date.now() - t0) + "ms");
+
+    yearsFromLookup(fc);
+    try {
+      var fy = fc.getAttribute(FY_LOOKUP);
+      if (fy) fy.addOnChange(function () { yearsFromLookup(fc); });
+    } catch (e) {}
+
+    attr = fc.getAttribute(COLUMN);
+    if (!attr) {
+      setLocked(true);
+      setStatus("Column " + COLUMN + " not found on the form.", "warn");
+      console.warn("[Savings Measures] Add " + COLUMN + " to the form (hidden section is fine).");
+      return;
+    }
+
+    var formType = 0;
+    try { formType = fc.ui.getFormType(); } catch (e) {}
+    var ctrl = fc.getControl(COLUMN);
+    var ctrlDisabled = ctrl && typeof ctrl.getDisabled === "function" ? ctrl.getDisabled() : false;
+
+    lastWritten = attr.getValue();
+    render(lastWritten);
+    setLocked(formType === 3 || formType === 4 || ctrlDisabled);
+
+    attr.addOnChange(function () {
+      var v = attr.getValue();
+      if (v !== lastWritten) { lastWritten = v; render(v); setLocked(locked); }
+    });
+
+    try { fc.data.entity.addOnPostSave(function () { setStatus("Saved", "saved"); }); } catch (e) {}
+  }
+
+  /* ---------- Entry points ---------- */
+  defaultYears();
+  render(null);
+
+  window.setClientApiContext = function (xrm, fc) { bind(fc, "OnLoad JS"); };
+
+  function tryParent() {
+    try {
+      var p = window.parent;
+      if (p && p !== window && p.Xrm && p.Xrm.Page && p.Xrm.Page.data && p.Xrm.Page.data.entity) {
+        bind(p.Xrm.Page, "parent.Xrm.Page fallback");
+        return true;
+      }
+    } catch (e) { /* cross-origin or not hosted */ }
+    return false;
+  }
+  var attempts = 0;
+  (function poll() {
+    if (initialised || tryParent()) return;
+    if (++attempts < 50) { setTimeout(poll, 100); return; }
+    console.info("[Savings Measures] not connected after 5s, preview mode");
+    setStatus("Preview mode (not connected to a record)");
+  })();
+
+  window.addEventListener("resize", function () { rows().forEach(growRow); });
+})();
+</script>
+</body>
+</html>

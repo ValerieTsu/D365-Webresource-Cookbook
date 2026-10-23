@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LTFP Principles</title>
+<style>
+  :root {
+    --brand: #2b6cb0;
+    --brand-dark: #2f6463;
+    --brand-light: #e6f0f0;
+    --ink: #1b1a19;
+    --muted: #6b6a68;
+    --border: #e3e2e0;
+    --bad: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", "Segoe UI Web", Arial, sans-serif;
+    color: var(--ink);
+    background: #ffffff;
+  }
+
+  #container {
+    display: flex;
+    gap: 20px;
+    padding: 16px;
+    align-items: flex-start;
+  }
+
+  /* ---------- Left: linked counter ---------- */
+  #count-panel {
+    flex: 0 0 132px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: sticky;
+    top: 16px;
+  }
+  #ring {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--brand) 0deg, #eeeeee 0deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .25s ease;
+  }
+  #ring-inner {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  #count-number { font-size: 28px; font-weight: 700; line-height: 1; }
+  #count-max { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  #count-tag {
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 100px;
+    color: #fff;
+    background: var(--brand);
+    letter-spacing: .2px;
+    text-align: center;
+  }
+  #count-tag.none { background: #a19f9d; }
+
+  /* ---------- Right: principles ---------- */
+  #principles { flex: 1; min-width: 0; }
+
+  #principles-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brand);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 2px;
+  }
+  #principles-intro {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .principle {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .principle.on {
+    border-color: var(--brand);
+    background: #fbfdfd;
+  }
+
+  .principle-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .principle-label { font-size: 13px; font-weight: 600; }
+  .principle-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-top: 3px;
+  }
+
+  /* toggle pill */
+  .toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    background: #f3f2f1;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 2px 10px 2px 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .toggle .box {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid #8a8886;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .toggle .box::after {
+    content: "";
+    width: 7px;
+    height: 4px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+    opacity: 0;
+  }
+  .principle.on .toggle {
+    color: var(--brand-dark);
+    background: var(--brand-light);
+  }
+  .principle.on .toggle .box { background: var(--brand); border-color: var(--brand); }
+  .principle.on .toggle .box::after { opacity: 1; }
+  .toggle:focus-within { border-color: var(--brand); }
+  .locked .toggle { cursor: default; }
+
+  .discussion { display: none; margin-top: 8px; }
+  .principle.on .discussion { display: block; }
+  .discussion label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .discussion textarea {
+    display: block;
+    width: 100%;
+    min-height: 54px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    resize: none;
+    overflow: hidden;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink);
+    background: #fff;
+    outline: none;
+  }
+  .discussion textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+  .discussion textarea::placeholder { color: #a19f9d; }
+  .discussion textarea:disabled { background: #faf9f8; color: var(--ink); }
+
+  #warning { font-size: 11px; color: var(--bad); margin-top: 2px; }
+  #status { font-size: 10px; color: #a19f9d; margin-top: 8px; min-height: 13px; }
+  #status.saved { color: var(--brand); }
+  #status.warn { color: var(--bad); }
+
+  @media (max-width: 520px) {
+    #container { flex-direction: column; align-items: stretch; }
+    #count-panel { position: static; align-self: center; }
+  }
+</style>
+</head>
+<body>
+<div id="container">
+
+  <div id="count-panel">
+    <div id="ring">
+      <div id="ring-inner">
+        <div id="count-number">0</div>
+        <div id="count-max">/ 5</div>
+      </div>
+    </div>
+    <div id="count-tag" class="none">None linked</div>
+  </div>
+
+  <div id="principles">
+    <div id="principles-title">Long Term Financial Plan Principles</div>
+    <div id="principles-intro">Tick the principle/s this bid relates to and add discussion for each.</div>
+    <div id="list"></div>
+    <div id="warning" hidden></div>
+    <div id="status"></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIGURATION
+     COLUMN     — one Multiple lines of text column, holds JSON:
+                  [{"principle":1,"discussion":"..."}, ...]
+                  Must be on the form (a hidden section is fine).
+     PRINCIPLES — edit the wording here if the LTFP changes.
+     ============================================================ */
+  var COLUMN = "new_ltfpprinciples";
+
+  var PRINCIPLES = [
+    "Principle 1 — replace with your organisation's wording.",
+    "Principle 2 — replace with your organisation's wording.",
+    "Principle 3 — replace with your organisation's wording.",
+    "Principle 4 — replace with your organisation's wording.",
+    "Principle 5 — replace with your organisation's wording."
+  ];
+
+  var listEl = document.getElementById("list");
+  var ring = document.getElementById("ring");
+  var countNumber = document.getElementById("count-number");
+  var countTag = document.getElementById("count-tag");
+  var warningEl = document.getElementById("warning");
+  var statusEl = document.getElementById("status");
+  document.getElementById("count-max").textContent = "/ " + PRINCIPLES.length;
+
+  var attr = null;
+  var lastWritten;
+  var initialised = false;
+  var locked = false;
+  var statusTimer = null;
+  var t0 = Date.now();
+  var cards = []; // { el, chk, ta }
+
+  /* ---------- Build cards ---------- */
+  PRINCIPLES.forEach(function (text, i) {
+    var n = i + 1;
+    var card = document.createElement("div");
+    card.className = "principle";
+
+    var head = document.createElement("div");
+    head.className = "principle-head";
+    var label = document.createElement("div");
+    label.className = "principle-label";
+    label.textContent = "Principle " + n;
+
+    var toggle = document.createElement("label");
+    toggle.className = "toggle";
+    var chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.setAttribute("aria-label", "Principle " + n + " relates to this bid");
+    var box = document.createElement("span");
+    box.className = "box";
+    var tTxt = document.createElement("span");
+    tTxt.textContent = "Related";
+    toggle.appendChild(chk);
+    toggle.appendChild(box);
+    toggle.appendChild(tTxt);
+
+    head.appendChild(label);
+    head.appendChild(toggle);
+
+    var desc = document.createElement("div");
+    desc.className = "principle-desc";
+    desc.textContent = text;
+
+    var disc = document.createElement("div");
+    disc.className = "discussion";
+    var dl = document.createElement("label");
+    dl.textContent = "Discussion";
+    var ta = document.createElement("textarea");
+    ta.placeholder = "How does this bid support principle " + n + "?";
+    ta.id = "disc-" + n;
+    dl.htmlFor = ta.id;
+    disc.appendChild(dl);
+    disc.appendChild(ta);
+
+    card.appendChild(head);
+    card.appendChild(desc);
+    card.appendChild(disc);
+    listEl.appendChild(card);
+
+    chk.addEventListener("change", function () {
+      card.classList.toggle("on", chk.checked);
+      if (chk.checked) { autoGrow(ta); ta.focus(); }
+      refresh();
+      commit();
+    });
+    ta.addEventListener("input", function () { autoGrow(ta); commit(); refresh(); });
+
+    cards.push({ el: card, chk: chk, ta: ta, n: n });
+  });
+
+  /* ---------- Helpers ---------- */
+  function autoGrow(ta) {
+    ta.style.height = "auto";
+    ta.style.height = Math.max(54, ta.scrollHeight + 2) + "px";
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text || "";
+    statusEl.className = cls || "";
+    clearTimeout(statusTimer);
+    if (text && cls === "saved") statusTimer = setTimeout(function () { setStatus(""); }, 2500);
+  }
+
+  function parse(value) {
+    if (!value) return {};
+    var map = {};
+    try {
+      var data = JSON.parse(value);
+      if (Array.isArray(data)) {
+        data.forEach(function (r) {
+          var n = parseInt(r && r.principle, 10);
+          if (n >= 1 && n <= PRINCIPLES.length) map[n] = (r && r.discussion) || "";
+        });
+      }
+    } catch (e) { /* not JSON, ignore */ }
+    return map;
+  }
+
+  function collect() {
+    var out = [];
+    cards.forEach(function (c) {
+      if (c.chk.checked) out.push({ principle: c.n, discussion: c.ta.value });
+    });
+    return out;
+  }
+
+  /* Counter ring + warning */
+  function refresh() {
+    var linked = cards.filter(function (c) { return c.chk.checked; });
+    var count = linked.length;
+    var deg = (count / PRINCIPLES.length) * 360;
+    ring.style.background = "conic-gradient(var(--brand) " + deg + "deg, #eeeeee " + deg + "deg)";
+    countNumber.textContent = count;
+    countTag.textContent = count === 0 ? "None linked" : count === 1 ? "1 principle linked" : count + " principles linked";
+    countTag.className = count === 0 ? "none" : "";
+
+    var missing = linked.filter(function (c) { return !c.ta.value.trim(); }).map(function (c) { return c.n; });
+    if (missing.length && !locked) {
+      warningEl.hidden = false;
+      warningEl.textContent = "Add discussion for principle " + missing.join(", ") + ".";
+    } else {
+      warningEl.hidden = true;
+    }
+  }
+
+  function render(value) {
+    var map = parse(value);
+    cards.forEach(function (c) {
+      var on = Object.prototype.hasOwnProperty.call(map, c.n);
+      c.chk.checked = on;
+      c.ta.value = on ? map[c.n] : "";
+      c.el.classList.toggle("on", on);
+      if (on) autoGrow(c.ta);
+    });
+    refresh();
+  }
+
+  /* ---------- Write back to the form column ---------- */
+  function commit() {
+    if (!attr) return;
+    var data = collect();
+    var v = data.length ? JSON.stringify(data) : null;
+
+    var max = typeof attr.getMaxLength === "function" ? attr.getMaxLength() : null;
+    if (max && v && v.length > max) {
+      setStatus("Too much text for the column (" + v.length + " of " + max + " characters).", "warn");
+      return;
+    }
+    if (attr.getValue() !== v) {
+      lastWritten = v;
+      attr.setValue(v);
+      setStatus("Unsaved changes — save the record to keep them.");
+    }
+  }
+
+  function setLocked(on) {
+    locked = on;
+    document.body.classList.toggle("locked", on);
+    cards.forEach(function (c) {
+      c.chk.disabled = on;
+      c.ta.disabled = on;
+      // read-only: hide principles that weren't linked to keep it tidy
+      c.el.hidden = on && !c.chk.checked;
+    });
+    document.getElementById("principles-intro").textContent = on
+      ? "Principles this bid relates to."
+      : "Tick the principle/s this bid relates to and add discussion for each.";
+    refresh();
+  }
+
+  /* ---------- Bind to the form ---------- */
+  function bind(fc, via) {
+    if (initialised) return;
+    initialised = true;
+    console.info("[LTFP Principles] connected via " + via + " after " + (Date.now() - t0) + "ms");
+
+    attr = fc.getAttribute(COLUMN);
+    if (!attr) {
+      setLocked(true);
+      cards.forEach(function (c) { c.el.hidden = false; });
+      setStatus("Column " + COLUMN + " not found on the form.", "warn");
+      console.warn("[LTFP Principles] Add " + COLUMN + " to the form (hidden section is fine).");
+      return;
+    }
+
+    var formType = 0;
+    try { formType = fc.ui.getFormType(); } catch (e) {}
+    var ctrl = fc.getControl(COLUMN);
+    var ctrlDisabled = ctrl && typeof ctrl.getDisabled === "function" ? ctrl.getDisabled() : false;
+
+    lastWritten = attr.getValue();
+    render(lastWritten);
+    setLocked(formType === 3 || formType === 4 || ctrlDisabled);
+
+    attr.addOnChange(function () {
+      var v = attr.getValue();
+      if (v !== lastWritten) { lastWritten = v; render(v); setLocked(locked); }
+    });
+
+    try { fc.data.entity.addOnPostSave(function () { setStatus("Saved", "saved"); }); } catch (e) {}
+  }
+
+  /* ---------- Entry points ---------- */
+  refresh();
+
+  window.setClientApiContext = function (xrm, fc) { bind(fc, "OnLoad JS"); };
+
+  function tryParent() {
+    try {
+      var p = window.parent;
+      if (p && p !== window && p.Xrm && p.Xrm.Page && p.Xrm.Page.data && p.Xrm.Page.data.entity) {
+        bind(p.Xrm.Page, "parent.Xrm.Page fallback");
+        return true;
+      }
+    } catch (e) { /* cross-origin or not hosted */ }
+    return false;
+  }
+  var attempts = 0;
+  (function poll() {
+    if (initialised || tryParent()) return;
+    if (++attempts < 50) { setTimeout(poll, 100); return; }
+    console.info("[LTFP Principles] not connected after 5s, preview mode");
+    setStatus("Preview mode (not connected to a record)");
+  })();
+
+  window.addEventListener("resize", function () {
+    cards.forEach(function (c) { if (c.chk.checked) autoGrow(c.ta); });
+  });
+})();
+</script>
+</body>
+</html>

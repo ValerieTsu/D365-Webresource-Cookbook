@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financial Impacts</title>
+<style>
+  :root {
+    --brand: #2b6cb0;
+    --header-bg: #cfe0df;   /* light tint of the brand colour */
+    --grid: #1f1f1f;
+    --text: #1f1f1f;
+    --muted: #4a5555;
+    --bad: #a4262c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .fi-wrap { padding: 4px 2px 8px; overflow-x: auto; }
+  .fi-intro { margin: 0 0 4px; font-size: 14px; }
+
+  .fi-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .fi-table col.c-opp  { width: 25%; }
+  .fi-table col.c-bud  { width: 11%; }
+  .fi-table col.c-exp  { width: 11%; }
+  .fi-table col.c-desc { width: 53%; }
+
+  .fi-table th,
+  .fi-table td { border: 1px solid var(--grid); }
+
+  .fi-table th {
+    background: var(--header-bg);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    vertical-align: top;
+    padding: 6px 8px;
+    line-height: 1.25;
+  }
+  .fi-table th.l { text-align: left; }
+  .fi-table th.c { text-align: center; }
+  .fi-guide {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 400;
+    font-style: italic;
+    text-align: left;
+    line-height: 1.35;
+  }
+  .fi-guide p { margin: 0 0 6px; }
+  .fi-guide p:last-child { margin: 0; }
+
+  .fi-table tbody td {
+    vertical-align: top;
+    padding: 0;
+    position: relative;
+  }
+  .fi-table td.fi-label {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  .fi-table textarea,
+  .fi-table input {
+    display: block;
+    width: 100%;
+    border: 0;
+    margin: 0;
+    padding: 6px 8px;
+    font: inherit;
+    line-height: 1.35;
+    color: var(--text);
+    background: transparent;
+    outline: none;
+  }
+  .fi-table textarea {
+    min-height: 32px;
+    resize: none;
+    overflow: hidden;
+  }
+  .fi-table td.fi-desc textarea { padding-right: 32px; }
+  .fi-table input.fi-num { text-align: right; height: 32px; font-variant-numeric: tabular-nums; }
+  .fi-table input.fi-num.neg { color: var(--bad); }
+  .fi-table textarea::placeholder,
+  .fi-table input::placeholder { color: transparent; }
+  .fi-table textarea:focus::placeholder,
+  .fi-table input:focus::placeholder { color: #9aa8a8; }
+  .fi-table textarea:focus,
+  .fi-table input:focus {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+  .fi-table textarea:disabled,
+  .fi-table input:disabled { color: var(--text); background: transparent; cursor: default; }
+  .fi-table input.fi-num.invalid { box-shadow: inset 0 0 0 2px var(--bad); }
+
+  .fi-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #6b7777;
+    font-size: 16px;
+    line-height: 24px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s ease, background-color .12s ease;
+  }
+  tr:hover .fi-remove,
+  tr:focus-within .fi-remove,
+  .fi-remove:focus-visible { opacity: 1; }
+  .fi-remove:hover { background: #f3e4e4; color: var(--bad); }
+  .fi-remove:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  @media (hover: none) { .fi-remove { opacity: 1; } }
+
+  /* add-row line sits inside the table, under the revenue rows */
+  .fi-addrow td { padding: 0; border-top: 1px solid var(--grid); }
+  .fi-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 4px;
+    padding: 3px 10px 3px 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--brand);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fi-add:hover { background: #eef5f5; }
+  .fi-add:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .fi-add span { font-size: 17px; line-height: 1; }
+
+  .fi-locked .fi-remove,
+  .fi-locked .fi-addrow { display: none; }
+
+  .fi-total td { font-weight: 700; }
+  .fi-total .fi-sum {
+    padding: 6px 8px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .fi-total .fi-sum.neg { color: var(--bad); }
+  .fi-total td.fi-blank { background: #ffffff; }
+
+  .fi-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 16px;
+  }
+  .fi-status.saved { color: var(--brand); }
+  .fi-status.warn { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="fi-wrap" id="fi-wrap">
+  <p class="fi-intro">Consider the expected costs of the proposal, the amount of revenue to be raised, alternative options and current costs</p>
+
+  <table class="fi-table" aria-label="Financial impacts">
+    <colgroup>
+      <col class="c-opp"><col class="c-bud"><col class="c-exp"><col class="c-desc">
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col" class="l">Revenue opportunity</th>
+        <th scope="col" class="c">Budget<br><span id="fy-cur">2025-26</span><br>$</th>
+        <th scope="col" class="c">Expected Budget<br><span id="fy-next">2026-27</span><br>$</th>
+        <th scope="col" class="c">Description of associated financial impacts
+          <span class="fi-guide">
+            <p>Revenue: Approximation of revenue to be raised.</p>
+            <p>Timing: Is this a one off measure in a single or over multiple financial years? Is it a permanent measure? Can it be implemented in <span id="fy-next-2">2026-27</span>?</p>
+            <p>Interdependencies: e.g. changes to legislation/policy/procedure, existing contract/s to be renegotiation or completed</p>
+            <p>Associated costs e.g. capital expenditure, staffing, training requirements.</p>
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="fi-items"></tbody>
+    <tbody>
+      <tr class="fi-addrow">
+        <td colspan="4"><button type="button" class="fi-add" id="fi-add"><span aria-hidden="true">+</span> Add revenue opportunity</button></td>
+      </tr>
+      <tr id="fi-current">
+        <td class="fi-label">Current Budget</td>
+        <td><input class="fi-num" id="cur-bud" inputmode="decimal" aria-label="Current budget, budget year" placeholder="$0"></td>
+        <td><input class="fi-num" id="cur-exp" inputmode="decimal" aria-label="Current budget, expected year" placeholder="$0"></td>
+        <td class="fi-desc"><textarea id="cur-desc" rows="1" aria-label="Current budget description" placeholder="e.g. Saving from operational budget…"></textarea></td>
+      </tr>
+      <tr class="fi-total">
+        <td class="fi-label">Total budget improvement</td>
+        <td class="fi-blank"></td>
+        <td class="fi-sum" id="fi-total">$0</td>
+        <td class="fi-blank"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="fi-foot">
+    <span>Total = revenue (expected − budget) + current budget saving (budget − expected)</span>
+    <span class="fi-status" id="fi-status"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIGURATION
+     COLUMN        — Multiple lines of text, holds the table as JSON. Required.
+     TOTAL_COLUMN  — Currency column for the total, so views / Power BI can use it.
+                     Optional: set to null if you don't want it.
+     FY_LOOKUP     — Financial Year lookup on the bid. Its name (e.g. "2026-27") becomes
+                     the "Expected Budget" year; the "Budget" year is the one before.
+                     Optional: if missing, the years are worked out from today's date.
+     All columns must be on the form (a hidden section is fine).
+     ============================================================ */
+  var COLUMN       = "new_financialimpacts";
+  var TOTAL_COLUMN = "new_totalbudgetimprovement";
+  var FY_LOOKUP    = "new_financialyear";
+
+  var itemsBody = document.getElementById("fi-items");
+  var wrap = document.getElementById("fi-wrap");
+  var addBtn = document.getElementById("fi-add");
+  var curBud = document.getElementById("cur-bud");
+  var curExp = document.getElementById("cur-exp");
+  var curDesc = document.getElementById("cur-desc");
+  var totalEl = document.getElementById("fi-total");
+  var statusEl = document.getElementById("fi-status");
+
+  var attr = null, totalAttr = null;
+  var lastWritten;
+  var locked = false;
+  var initialised = false;
+  var statusTimer = null;
+  var t0 = Date.now();
+
+  /* ---------- Money helpers ---------- */
+  function parseMoney(s) {
+    if (s === null || s === undefined) return null;
+    var t = String(s).replace(/[$,\s+]/g, "");
+    if (/^\(.*\)$/.test(t)) t = "-" + t.slice(1, -1);   // (1,000) => -1000
+    if (t === "" || t === "-") return null;
+    var n = Number(t);
+    return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  }
+  function fmtMoney(n) {
+    if (n === null || n === undefined || isNaN(n)) return "";
+    var abs = Math.abs(n);
+    var s = abs.toLocaleString("en-AU", { minimumFractionDigits: abs % 1 ? 2 : 0, maximumFractionDigits: 2 });
+    return (n < 0 ? "-$" : "$") + s;
+  }
+
+  /* number cell: plain while editing, formatted when not */
+  function wireMoney(input) {
+    input.addEventListener("focus", function () {
+      var n = parseMoney(input.value);
+      if (n !== null && !isNaN(n)) input.value = String(n);
+      input.select();
+    });
+    input.addEventListener("blur", function () {
+      var n = parseMoney(input.value);
+      input.classList.toggle("invalid", isNaN(n));
+      if (n !== null && !isNaN(n)) input.value = fmtMoney(n);
+      input.classList.toggle("neg", n < 0);
+    });
+    input.addEventListener("input", function () {
+      input.classList.toggle("invalid", isNaN(parseMoney(input.value)));
+      recalc();
+      commit();
+    });
+  }
+  function setMoney(input, n) {
+    input.value = n === null || n === undefined ? "" : fmtMoney(n);
+    input.classList.toggle("neg", n < 0);
+    input.classList.remove("invalid");
+  }
+  function num(input) {
+    var n = parseMoney(input.value);
+    return n === null || isNaN(n) ? 0 : n;
+  }
+
+  /* ---------- General helpers ---------- */
+  function autoGrow(ta) {
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }
+  function setStatus(text, cls) {
+    statusEl.textContent = text || "";
+    statusEl.className = "fi-status" + (cls ? " " + cls : "");
+    clearTimeout(statusTimer);
+    if (text && cls === "saved") statusTimer = setTimeout(function () { setStatus(""); }, 2500);
+  }
+  function itemRows() { return Array.prototype.slice.call(itemsBody.querySelectorAll("tr")); }
+
+  /* ---------- Financial year headings ---------- */
+  function fyLabel(startYear) {
+    return startYear + "-" + String((startYear + 1) % 100).padStart(2, "0");
+  }
+  function setYears(nextStart) {
+    document.getElementById("fy-cur").textContent = fyLabel(nextStart - 1);
+    document.getElementById("fy-next").textContent = fyLabel(nextStart);
+    document.getElementById("fy-next-2").textContent = fyLabel(nextStart);
+  }
+  function defaultYears() {
+    // Australian FY starts 1 July. Bids are for the next financial year.
+    var d = new Date();
+    var curStart = d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+    setYears(curStart + 1);
+  }
+  function yearsFromLookup(fc) {
+    try {
+      var a = fc.getAttribute(FY_LOOKUP);
+      var v = a && a.getValue();
+      var name = v && v[0] && v[0].name;
+      var m = name && name.match(/(20\d{2})/);
+      if (m) { setYears(parseInt(m[1], 10)); return true; }
+    } catch (e) {}
+    return false;
+  }
+
+  /* ---------- Revenue rows ---------- */
+  function addItem(row, focus) {
+    var tr = document.createElement("tr");
+
+    var tdOpp = document.createElement("td");
+    var taOpp = document.createElement("textarea");
+    taOpp.rows = 1;
+    taOpp.placeholder = "e.g. New service fee";
+    taOpp.setAttribute("aria-label", "Revenue opportunity");
+    taOpp.value = row ? row.opportunity || "" : "";
+    tdOpp.appendChild(taOpp);
+
+    var tdBud = document.createElement("td");
+    var inBud = document.createElement("input");
+    inBud.className = "fi-num";
+    inBud.inputMode = "decimal";
+    inBud.placeholder = "$0";
+    inBud.setAttribute("aria-label", "Budget");
+    tdBud.appendChild(inBud);
+
+    var tdExp = document.createElement("td");
+    var inExp = document.createElement("input");
+    inExp.className = "fi-num";
+    inExp.inputMode = "decimal";
+    inExp.placeholder = "$0";
+    inExp.setAttribute("aria-label", "Expected budget");
+    tdExp.appendChild(inExp);
+
+    var tdDesc = document.createElement("td");
+    tdDesc.className = "fi-desc";
+    var taDesc = document.createElement("textarea");
+    taDesc.rows = 1;
+    taDesc.placeholder = "Revenue, timing, interdependencies, associated costs…";
+    taDesc.setAttribute("aria-label", "Description of associated financial impacts");
+    taDesc.value = row ? row.description || "" : "";
+    tdDesc.appendChild(taDesc);
+
+    var rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "fi-remove";
+    rm.title = "Remove row";
+    rm.setAttribute("aria-label", "Remove row");
+    rm.textContent = "×";
+    rm.addEventListener("click", function () {
+      if (itemRows().length === 1) {
+        taOpp.value = ""; taDesc.value = ""; setMoney(inBud, null); setMoney(inExp, null);
+        growRow(tr);
+      } else {
+        var next = tr.nextElementSibling || tr.previousElementSibling;
+        tr.remove();
+        if (next) next.querySelector("textarea").focus();
+      }
+      recalc();
+      commit();
+    });
+    tdDesc.appendChild(rm);
+
+    setMoney(inBud, row ? row.budget : null);
+    setMoney(inExp, row ? row.expected : null);
+    wireMoney(inBud);
+    wireMoney(inExp);
+    [taOpp, taDesc].forEach(function (ta) {
+      ta.addEventListener("input", function () { growRow(tr); commit(); });
+    });
+    [taOpp, inBud, inExp, taDesc].forEach(function (el) { el.disabled = locked; });
+
+    tr.appendChild(tdOpp);
+    tr.appendChild(tdBud);
+    tr.appendChild(tdExp);
+    tr.appendChild(tdDesc);
+    itemsBody.appendChild(tr);
+    growRow(tr);
+    if (focus) taOpp.focus();
+  }
+
+  function growRow(tr) {
+    var tas = tr.querySelectorAll("textarea");
+    tas.forEach(function (t) { t.style.height = "auto"; });
+    var h = 0;
+    tas.forEach(function (t) { h = Math.max(h, t.scrollHeight); });
+    tas.forEach(function (t) { t.style.height = h + "px"; });
+  }
+
+  addBtn.addEventListener("click", function () { addItem(null, true); });
+
+  wireMoney(curBud);
+  wireMoney(curExp);
+  curDesc.addEventListener("input", function () { autoGrow(curDesc); commit(); });
+
+  /* ---------- Total ---------- */
+  function totalValue() {
+    var t = 0;
+    itemRows().forEach(function (tr) {
+      var ins = tr.querySelectorAll("input");
+      t += num(ins[1]) - num(ins[0]);          // revenue: expected - budget
+    });
+    t += num(curBud) - num(curExp);            // current budget: saving
+    return Math.round(t * 100) / 100;
+  }
+  function recalc() {
+    var t = totalValue();
+    totalEl.textContent = fmtMoney(t);
+    totalEl.classList.toggle("neg", t < 0);
+    return t;
+  }
+
+  /* ---------- Read / write ---------- */
+  function collect() {
+    var items = [];
+    itemRows().forEach(function (tr) {
+      var tas = tr.querySelectorAll("textarea");
+      var ins = tr.querySelectorAll("input");
+      var r = {
+        opportunity: tas[0].value,
+        budget: parseMoney(ins[0].value),
+        expected: parseMoney(ins[1].value),
+        description: tas[1].value
+      };
+      if (isNaN(r.budget)) r.budget = null;
+      if (isNaN(r.expected)) r.expected = null;
+      if (r.opportunity.trim() || r.description.trim() || r.budget !== null || r.expected !== null) items.push(r);
+    });
+    var cb = parseMoney(curBud.value), ce = parseMoney(curExp.value);
+    var current = {
+      budget: isNaN(cb) ? null : cb,
+      expected: isNaN(ce) ? null : ce,
+      description: curDesc.value
+    };
+    var empty = !items.length && current.budget === null && current.expected === null && !current.description.trim();
+    return empty ? null : { items: items, current: current };
+  }
+
+  function render(value) {
+    var data = null;
+    try { data = value ? JSON.parse(value) : null; } catch (e) { data = null; }
+    itemsBody.innerHTML = "";
+    var items = data && Array.isArray(data.items) && data.items.length ? data.items : [null];
+    items.forEach(function (r) { addItem(r, false); });
+    var c = (data && data.current) || {};
+    setMoney(curBud, c.budget);
+    setMoney(curExp, c.expected);
+    curDesc.value = c.description || "";
+    autoGrow(curDesc);
+    recalc();
+  }
+
+  function commit() {
+    var t = recalc();
+    if (!attr) return;
+    var data = collect();
+    var v = data ? JSON.stringify(data) : null;
+
+    var max = typeof attr.getMaxLength === "function" ? attr.getMaxLength() : null;
+    if (max && v && v.length > max) {
+      setStatus("Too much text for the column (" + v.length + " of " + max + " characters).", "warn");
+      return;
+    }
+    var changed = false;
+    if (attr.getValue() !== v) {
+      lastWritten = v;
+      attr.setValue(v);
+      changed = true;
+    }
+    if (totalAttr) {
+      var tv = data ? t : null;
+      if (totalAttr.getValue() !== tv) { totalAttr.setValue(tv); changed = true; }
+    }
+    if (changed) setStatus("Unsaved changes — save the record to keep them.");
+  }
+
+  function setLocked(on) {
+    locked = on;
+    wrap.classList.toggle("fi-locked", on);
+    wrap.querySelectorAll("tbody textarea, tbody input").forEach(function (el) { el.disabled = on; });
+  }
+
+  /* ---------- Bind to the form ---------- */
+  function bind(fc, via) {
+    if (initialised) return;
+    initialised = true;
+    console.info("[Financial Impacts] connected via " + via + " after " + (Date.now() - t0) + "ms");
+
+    yearsFromLookup(fc);
+
+    attr = fc.getAttribute(COLUMN);
+    if (!attr) {
+      setLocked(true);
+      setStatus("Column " + COLUMN + " not found on the form.", "warn");
+      console.warn("[Financial Impacts] Add " + COLUMN + " to the form (hidden section is fine).");
+      return;
+    }
+    totalAttr = TOTAL_COLUMN ? fc.getAttribute(TOTAL_COLUMN) : null;
+    if (TOTAL_COLUMN && !totalAttr) {
+      console.warn("[Financial Impacts] " + TOTAL_COLUMN + " not on the form — total won't be stored for views/reports.");
+    }
+
+    var formType = 0;
+    try { formType = fc.ui.getFormType(); } catch (e) {}
+    var ctrl = fc.getControl(COLUMN);
+    var ctrlDisabled = ctrl && typeof ctrl.getDisabled === "function" ? ctrl.getDisabled() : false;
+
+    lastWritten = attr.getValue();
+    render(lastWritten);
+    setLocked(formType === 3 || formType === 4 || ctrlDisabled);
+
+    attr.addOnChange(function () {
+      var v = attr.getValue();
+      if (v !== lastWritten) { lastWritten = v; render(v); setLocked(locked); }
+    });
+    try {
+      var fy = fc.getAttribute(FY_LOOKUP);
+      if (fy) fy.addOnChange(function () { yearsFromLookup(fc); });
+    } catch (e) {}
+
+    try { fc.data.entity.addOnPostSave(function () { setStatus("Saved", "saved"); }); } catch (e) {}
+  }
+
+  /* ---------- Entry points ---------- */
+  defaultYears();
+  render(null);
+
+  window.setClientApiContext = function (xrm, fc) { bind(fc, "OnLoad JS"); };
+
+  function tryParent() {
+    try {
+      var p = window.parent;
+      if (p && p !== window && p.Xrm && p.Xrm.Page && p.Xrm.Page.data && p.Xrm.Page.data.entity) {
+        bind(p.Xrm.Page, "parent.Xrm.Page fallback");
+        return true;
+      }
+    } catch (e) { /* cross-origin or not hosted */ }
+    return false;
+  }
+  var attempts = 0;
+  (function poll() {
+    if (initialised || tryParent()) return;
+    if (++attempts < 50) { setTimeout(poll, 100); return; }
+    console.info("[Financial Impacts] not connected after 5s, preview mode");
+    setStatus("Preview mode (not connected to a record)");
+  })();
+
+  window.addEventListener("resize", function () {
+    itemRows().forEach(growRow);
+    autoGrow(curDesc);
+  });
+})();
+</script>
+</body>
+</html>

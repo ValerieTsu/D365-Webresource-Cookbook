@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demographics</title>
+<style>
+  :root {
+    --brand: #2b6cb0;
+    --header-bg: #cfe0df;   /* light tint of the brand colour */
+    --grid: #1f1f1f;
+    --text: #1f1f1f;
+    --muted: #4a5555;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .dm-wrap { padding: 4px 2px 8px; overflow-x: auto; }
+
+  .dm-table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .dm-table col.c-demo { width: 42%; }
+  .dm-table col.c-desc { width: 58%; }
+
+  .dm-table th,
+  .dm-table td { border: 1px solid var(--grid); }
+
+  .dm-table th {
+    background: var(--header-bg);
+    color: var(--text);
+    font-weight: 400;
+    text-align: center;
+    vertical-align: top;
+    padding: 8px 12px 10px;
+  }
+  .dm-head-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .dm-head-q {
+    display: block;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .dm-head-eg {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    font-style: italic;
+    line-height: 1.35;
+    color: var(--muted);
+  }
+
+  .dm-table tbody td {
+    vertical-align: top;
+    padding: 0;
+    position: relative;
+  }
+
+  .dm-table textarea {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    border: 0;
+    margin: 0;
+    padding: 8px;
+    resize: none;
+    overflow: hidden;
+    font: inherit;
+    line-height: 1.35;
+    color: var(--text);
+    background: transparent;
+    outline: none;
+  }
+  .dm-table td.dm-desc textarea { padding-right: 34px; } /* room for the remove button */
+  .dm-table textarea::placeholder { color: transparent; }
+  .dm-table textarea:focus::placeholder { color: #9aa8a8; }
+  .dm-table textarea:focus {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+  .dm-table textarea:disabled {
+    color: var(--text);
+    background: transparent;
+    cursor: default;
+  }
+
+  .dm-remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #6b7777;
+    font-size: 16px;
+    line-height: 24px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s ease, background-color .12s ease;
+  }
+  tr:hover .dm-remove,
+  tr:focus-within .dm-remove,
+  .dm-remove:focus-visible { opacity: 1; }
+  .dm-remove:hover { background: #f3e4e4; color: #a4262c; }
+  .dm-remove:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  @media (hover: none) { .dm-remove { opacity: 1; } }
+  .dm-locked .dm-remove { display: none; }
+
+  .dm-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    min-height: 28px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .dm-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--brand);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dm-add:hover { background: #eef5f5; }
+  .dm-add:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .dm-add span { font-size: 18px; line-height: 1; }
+  .dm-locked .dm-add { display: none; }
+
+  .dm-status.saved { color: var(--brand); }
+  .dm-status.warn { color: #a4262c; }
+</style>
+</head>
+<body>
+<div class="dm-wrap" id="dm-wrap">
+  <table class="dm-table" aria-label="Demographics impacted">
+    <colgroup><col class="c-demo"><col class="c-desc"></colgroup>
+    <thead>
+      <tr>
+        <th scope="col">
+          <span class="dm-head-title">Demographic</span>
+          <span class="dm-head-q">Who will be impacted (internal and external)?</span>
+          <span class="dm-head-eg">(e.g. local residents, age group, income bracket, unemployed, single families,
+            home owners, small businesses, visitors, community groups, health care providers, cyclists etc.)</span>
+        </th>
+        <th scope="col">
+          <span class="dm-head-title">Description</span>
+          <span class="dm-head-q">Please provide details including number impacted and area/location covered</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="dm-body"></tbody>
+  </table>
+
+  <div class="dm-actions">
+    <button type="button" class="dm-add" id="dm-add"><span aria-hidden="true">+</span> Add row</button>
+    <span class="dm-status" id="dm-status"></span>
+    <span id="dm-mode"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     CONFIG — one Multiple lines of text column holds all rows as JSON:
+     [{"demographic":"...","description":"..."}, ...]
+     The column must be on the form (a hidden section is fine).
+     ------------------------------------------------------------------ */
+  var COLUMN = "new_demographics";
+
+  var body = document.getElementById("dm-body");
+  var wrap = document.getElementById("dm-wrap");
+  var addBtn = document.getElementById("dm-add");
+  var statusEl = document.getElementById("dm-status");
+  var modeEl = document.getElementById("dm-mode");
+
+  var attr = null;           // the Dataverse attribute, once connected
+  var locked = false;
+  var lastWritten;           // last value this component wrote, to ignore its own onChange
+  var initialised = false;
+  var statusTimer = null;
+  var t0 = Date.now();
+
+  /* ---------- Helpers ---------- */
+  function autoGrow(ta) {
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }
+
+  function growRow(tr) {
+    // keep both cells in a row the same height
+    var tas = tr.querySelectorAll("textarea");
+    tas.forEach(function (t) { t.style.height = "auto"; });
+    var h = 0;
+    tas.forEach(function (t) { h = Math.max(h, t.scrollHeight); });
+    tas.forEach(function (t) { t.style.height = h + "px"; });
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text || "";
+    statusEl.className = "dm-status" + (cls ? " " + cls : "");
+    clearTimeout(statusTimer);
+    if (text && cls === "saved") statusTimer = setTimeout(function () { setStatus(""); }, 2500);
+  }
+
+  function parse(value) {
+    if (!value) return [];
+    try {
+      var data = JSON.parse(value);
+      if (Array.isArray(data)) {
+        return data.map(function (r) {
+          return { demographic: (r && r.demographic) || "", description: (r && r.description) || "" };
+        });
+      }
+    } catch (e) { /* not JSON — treat as plain text below */ }
+    return [{ demographic: String(value), description: "" }];
+  }
+
+  function collect() {
+    var out = [];
+    body.querySelectorAll("tr").forEach(function (tr) {
+      var tas = tr.querySelectorAll("textarea");
+      var d = tas[0].value, s = tas[1].value;
+      if (d.trim() || s.trim()) out.push({ demographic: d, description: s });
+    });
+    return out;
+  }
+
+  /* ---------- Write back to the form column ---------- */
+  function commit() {
+    if (!attr) return;
+    var data = collect();
+    var v = data.length ? JSON.stringify(data) : null;
+
+    var max = typeof attr.getMaxLength === "function" ? attr.getMaxLength() : null;
+    if (max && v && v.length > max) {
+      setStatus("Too much text for the column (" + v.length + " of " + max + " characters). Shorten some rows.", "warn");
+      return;
+    }
+    if (attr.getValue() !== v) {
+      lastWritten = v;
+      attr.setValue(v);
+      setStatus("Unsaved changes — save the record to keep them.");
+    }
+  }
+
+  /* ---------- Rows ---------- */
+  function addRow(row, focus) {
+    var tr = document.createElement("tr");
+
+    var tdDemo = document.createElement("td");
+    var taDemo = document.createElement("textarea");
+    taDemo.rows = 1;
+    taDemo.placeholder = "Who will be impacted…";
+    taDemo.setAttribute("aria-label", "Demographic");
+    taDemo.value = row ? row.demographic : "";
+    tdDemo.appendChild(taDemo);
+
+    var tdDesc = document.createElement("td");
+    tdDesc.className = "dm-desc";
+    var taDesc = document.createElement("textarea");
+    taDesc.rows = 1;
+    taDesc.placeholder = "Number impacted, area/location covered…";
+    taDesc.setAttribute("aria-label", "Description");
+    taDesc.value = row ? row.description : "";
+    tdDesc.appendChild(taDesc);
+
+    var rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "dm-remove";
+    rm.title = "Remove row";
+    rm.setAttribute("aria-label", "Remove row");
+    rm.textContent = "×";
+    rm.addEventListener("click", function () {
+      var rows = body.querySelectorAll("tr");
+      if (rows.length === 1) {
+        // always keep one row — just clear it
+        taDemo.value = ""; taDesc.value = "";
+        growRow(tr);
+      } else {
+        var next = tr.nextElementSibling || tr.previousElementSibling;
+        tr.remove();
+        if (next) next.querySelector("textarea").focus();
+      }
+      commit();
+    });
+    tdDesc.appendChild(rm);
+
+    [taDemo, taDesc].forEach(function (ta) {
+      ta.disabled = locked;
+      ta.addEventListener("input", function () { growRow(tr); commit(); });
+    });
+
+    tr.appendChild(tdDemo);
+    tr.appendChild(tdDesc);
+    body.appendChild(tr);
+    growRow(tr);
+    if (focus) taDemo.focus();
+    return tr;
+  }
+
+  function render(value) {
+    body.innerHTML = "";
+    var rows = parse(value);
+    if (!rows.length) rows = [null];
+    rows.forEach(function (r) { addRow(r, false); });
+  }
+
+  addBtn.addEventListener("click", function () { addRow(null, true); });
+
+  function setLocked(on) {
+    locked = on;
+    wrap.classList.toggle("dm-locked", on);
+    body.querySelectorAll("textarea").forEach(function (t) { t.disabled = on; });
+    modeEl.textContent = on ? "Read only" : "";
+  }
+
+  /* ---------- Bind to the form ---------- */
+  function bind(fc, via) {
+    if (initialised) return;
+    initialised = true;
+    console.info("[Demographics] connected via " + via + " after " + (Date.now() - t0) + "ms");
+
+    attr = fc.getAttribute(COLUMN);
+    if (!attr) {
+      setLocked(true);
+      modeEl.textContent = "";   // locked because the column is missing, not because the record is read only
+      setStatus("Column " + COLUMN + " not found on the form.", "warn");
+      console.warn("[Demographics] Add " + COLUMN + " to the form (hidden section is fine).");
+      return;
+    }
+
+    var formType = 0;
+    try { formType = fc.ui.getFormType(); } catch (e) {}
+    var ctrl = fc.getControl(COLUMN);
+    var ctrlDisabled = ctrl && typeof ctrl.getDisabled === "function" ? ctrl.getDisabled() : false;
+
+    lastWritten = attr.getValue();
+    render(lastWritten);
+    setLocked(formType === 3 || formType === 4 || ctrlDisabled);
+
+    // Re-render if something else changes the column
+    attr.addOnChange(function () {
+      var v = attr.getValue();
+      if (v !== lastWritten) { lastWritten = v; render(v); setLocked(locked); }
+    });
+
+    try { fc.data.entity.addOnPostSave(function () { setStatus("Saved", "saved"); }); } catch (e) {}
+  }
+
+  /* ---------- Entry points ---------- */
+  render(null); // show one empty row straight away
+
+  // Preferred: called from the form OnLoad script via getContentWindow()
+  window.setClientApiContext = function (xrm, fc) { bind(fc, "OnLoad JS"); };
+
+  // Fallback: legacy parent.Xrm.Page, checked every 100ms
+  function tryParent() {
+    try {
+      var p = window.parent;
+      if (p && p !== window && p.Xrm && p.Xrm.Page && p.Xrm.Page.data && p.Xrm.Page.data.entity) {
+        bind(p.Xrm.Page, "parent.Xrm.Page fallback");
+        return true;
+      }
+    } catch (e) { /* cross-origin or not hosted */ }
+    return false;
+  }
+  var attempts = 0;
+  (function poll() {
+    if (initialised || tryParent()) return;
+    if (++attempts < 50) { setTimeout(poll, 100); return; }
+    console.info("[Demographics] not connected after 5s, preview mode");
+    modeEl.textContent = "Preview mode (not connected to a record)";
+  })();
+
+  window.addEventListener("resize", function () { body.querySelectorAll("tr").forEach(growRow); });
+})();
+</script>
+</body>
+</html>
